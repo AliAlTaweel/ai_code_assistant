@@ -12,42 +12,7 @@ let client: Client;
 beforeAll(async () => {
   client = new Client({ connectionString: TEST_URL });
   await client.connect();
-
-  // Check if schema exists by trying to query the users table
-  let schemaExists = false;
-  try {
-    await client.query("SELECT 1 FROM users LIMIT 1");
-    schemaExists = true;
-  } catch (e) {
-    schemaExists = false;
-  }
-
-  // Only create schema if it doesn't exist
-  if (!schemaExists) {
-    try {
-      await client.query(readFileSync(new URL("../schema.sql", import.meta.url), "utf-8"));
-    } catch (e) {
-      // If schema creation fails due to extension conflict, just continue
-      // Another test likely created it concurrently
-      if ((e as Error).message.includes("duplicate key value violates unique constraint")) {
-        // Extension already created, continue
-      } else {
-        throw e;
-      }
-    }
-  } else {
-    // If schema exists, clear seed data to allow re-seeding
-    await client.query(`
-      DELETE FROM skills;
-      DELETE FROM assignments;
-      DELETE FROM consultants;
-      DELETE FROM projects;
-      DELETE FROM pending_actions;
-      DELETE FROM users;
-    `);
-  }
-
-  // Run seed data
+  await client.query(readFileSync(new URL("../schema.sql", import.meta.url), "utf-8"));
   await client.query(readFileSync(new URL("../seed.sql", import.meta.url), "utf-8"));
 });
 
