@@ -1,0 +1,19 @@
+{
+  "name": "@skillsmatch/mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@skillsmatch/shared": "*",
+    "@modelcontextprotocol/sdk": "^1.15.0",
+    "zod": "^3.23.8",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.6"
+  }
+}
