@@ -12,6 +12,7 @@ let client: Client;
 beforeAll(async () => {
   client = new Client({ connectionString: TEST_URL });
   await client.connect();
+  await client.query(`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`);
   const sql = readFileSync(new URL("../schema.sql", import.meta.url), "utf-8");
   await client.query(sql);
 });
