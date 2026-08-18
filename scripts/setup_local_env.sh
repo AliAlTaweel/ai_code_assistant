@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "Installing npm dependencies..."
+npm install
 
 echo "Starting Postgres..."
 docker compose up -d

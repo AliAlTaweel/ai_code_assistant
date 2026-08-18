@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Client } from "pg";
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";

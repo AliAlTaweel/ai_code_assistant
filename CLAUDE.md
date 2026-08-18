@@ -4,11 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-This repository is currently greenfield — the only content is `claude_prompt.md`, a phase-by-phase
-implementation plan for **SkillsMatch MCP**, a permission-aware staffing agent platform. No source
-code, build tooling, or tests exist yet. Treat `claude_prompt.md` as the spec of record; consult it
-before starting work on any phase, since it defines exact table schemas, MCP tool signatures, and
-file paths expected for each phase.
+**SkillsMatch MCP** is a permission-aware staffing agent platform, built phase-by-phase per
+`claude_prompt.md` (the spec of record — consult it before starting work on any phase, since it
+defines exact table schemas, MCP tool signatures, and file paths expected for each phase).
+
+The **data layer** (Phase 1) is complete and merged: a Docker Compose Postgres 16 + pgvector
+instance, `db/schema.sql` / `db/seed.sql`, a consultant-embedding generation script, and a Vitest
+suite covering schema, seed data, embeddings, and connectivity. The MCP server, agent runtime,
+evaluation suite, and frontend (Phases 2–5) are not yet built — see "Intended architecture" below.
 
 ## Intended architecture (per claude_prompt.md)
 
@@ -37,5 +40,18 @@ depends on interfaces (DB schema, MCP tool contracts) established in the earlier
 
 ## Commands
 
-No build/test/lint tooling exists yet. Once a phase scaffolds a package (Node/Go backend, evals
-runner, or the Vite frontend), record its actual commands here rather than assuming defaults.
+- **Fresh machine / bring up local env:** `./scripts/setup_local_env.sh` — installs npm deps,
+  starts Docker Postgres, waits for health, applies `db/schema.sql` and `db/seed.sql`, checks
+  Ollama is reachable, and generates consultant embeddings. Safe to re-run: `db/schema.sql` is
+  idempotent (drops/recreates enum types and tables before recreating them).
+- **Run tests:** `npm test` (Vitest; `db/test/global-setup.ts` creates/reseeds `agileday_test`
+  before the suite runs).
+- **Individual DB scripts** (each reads `DATABASE_URL`, falling back to
+  `postgres://admin:password@localhost:5432/agileday_local`):
+  - `npm run db:apply-schema` — applies `db/schema.sql`
+  - `npm run db:seed` — applies `db/seed.sql`
+  - `npm run db:generate-embeddings` — fills `consultants.embedding` via Ollama
+  - Or directly: `tsx db/apply.ts <sqlFilePath> <connectionString>`
+- **Env vars:** copy `.env.example` to `.env` and adjust as needed — `DATABASE_URL`,
+  `TEST_DATABASE_URL`, `OLLAMA_URL`. `.env` is loaded automatically (via `dotenv`) by the DB
+  scripts and the Vitest config; it is gitignored.

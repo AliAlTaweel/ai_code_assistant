@@ -2,7 +2,10 @@
   "name": "skillsmatch-mcp",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "test": "vitest run",
     "db:apply-schema": "tsx db/apply.ts db/schema.sql $DATABASE_URL",
@@ -10,13 +13,14 @@
     "db:generate-embeddings": "tsx db/generate-embeddings.ts"
   },
   "devDependencies": {
-    "typescript": "^5.5.4",
-    "tsx": "^4.16.5",
-    "vitest": "^2.0.5",
     "@types/node": "^20.14.15",
-    "@types/pg": "^8.11.6"
+    "@types/pg": "^8.11.6",
+    "tsx": "^4.16.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "pg": "^8.12.0"
   }
 }
