@@ -19,27 +19,29 @@ export async function run(connectionString: string): Promise<void> {
   const client = new Client({ connectionString });
   await client.connect();
 
-  const { rows } = await client.query<{ id: string; title: string }>(
-    `SELECT id, title FROM consultants WHERE embedding IS NULL`
-  );
-
-  for (const consultant of rows) {
-    const skills = await client.query<{ skill_name: string; proficiency_level: number }>(
-      `SELECT skill_name, proficiency_level FROM skills WHERE consultant_id = $1`,
-      [consultant.id]
+  try {
+    const { rows } = await client.query<{ id: string; title: string }>(
+      `SELECT id, title FROM consultants WHERE embedding IS NULL`
     );
-    const skillsText = skills.rows
-      .map((s) => `${s.skill_name} (${s.proficiency_level})`)
-      .join(", ");
-    const text = `${consultant.title}. Skills: ${skillsText}`;
-    const vector = await embedText(text);
-    await client.query(`UPDATE consultants SET embedding = $1 WHERE id = $2`, [
-      `[${vector.join(",")}]`,
-      consultant.id,
-    ]);
-  }
 
-  await client.end();
+    for (const consultant of rows) {
+      const skills = await client.query<{ skill_name: string; proficiency_level: number }>(
+        `SELECT skill_name, proficiency_level FROM skills WHERE consultant_id = $1`,
+        [consultant.id]
+      );
+      const skillsText = skills.rows
+        .map((s) => `${s.skill_name} (${s.proficiency_level})`)
+        .join(", ");
+      const text = `${consultant.title}. Skills: ${skillsText}`;
+      const vector = await embedText(text);
+      await client.query(`UPDATE consultants SET embedding = $1 WHERE id = $2`, [
+        `[${vector.join(",")}]`,
+        consultant.id,
+      ]);
+    }
+  } finally {
+    await client.end();
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
