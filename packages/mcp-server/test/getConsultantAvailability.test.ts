@@ -33,5 +33,6 @@ describe("getConsultantAvailability", () => {
     expect(results.length).toBeLessThanOrEqual(5);
     expect(results.every((r) => r.availability_hours_per_week >= 20)).toBe(true);
     expect(results[0].title.toLowerCase()).toContain("go");
+    expect(typeof results[0].availability_hours_per_week).toBe("number");
   });
 });

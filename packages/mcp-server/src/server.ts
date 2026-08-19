@@ -10,38 +10,65 @@ import { getProjectMargin } from "./tools/getProjectMargin.js";
 import { draftAssignment } from "./tools/draftAssignment.js";
 
 function toErrorResponse(err: unknown) {
-  return { isError: true, content: [{ type: "text" as const, text: (err as Error).message }] };
+  return {
+    isError: true,
+    content: [{ type: "text" as const, text: err instanceof Error ? err.message : String(err) }],
+  };
 }
 
 export function buildServer(pool: Pool): McpServer {
   const server = new McpServer({ name: "skillsmatch-mcp", version: "0.1.0" });
 
-  server.tool("get_consultant_availability", GetConsultantAvailabilityInput.shape, async (input) => {
-    try {
-      const results = await getConsultantAvailability(input, pool);
-      return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
-    } catch (err) {
-      return toErrorResponse(err);
+  server.registerTool(
+    "get_consultant_availability",
+    {
+      description:
+        "Find consultants matching required skills and minimum weekly availability, ranked by semantic similarity. Open to all roles. requester_role is the acting user's role, supplied by the calling agent.",
+      inputSchema: GetConsultantAvailabilityInput.shape,
+    },
+    async (input) => {
+      try {
+        const results = await getConsultantAvailability(input, pool);
+        return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
+      } catch (err) {
+        return toErrorResponse(err);
+      }
     }
-  });
+  );
 
-  server.tool("get_project_margin", GetProjectMarginInput.shape, async (input) => {
-    try {
-      const result = await getProjectMargin(input, pool);
-      return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
-    } catch (err) {
-      return toErrorResponse(err);
+  server.registerTool(
+    "get_project_margin",
+    {
+      description:
+        "Compute the profit margin percentage for a consultant at a given target bill rate. Restricted to ADMIN and FINANCE roles. requester_role is the acting user's role, supplied by the calling agent — not to be set by the model.",
+      inputSchema: GetProjectMarginInput.shape,
+    },
+    async (input) => {
+      try {
+        const result = await getProjectMargin(input, pool);
+        return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+      } catch (err) {
+        return toErrorResponse(err);
+      }
     }
-  });
+  );
 
-  server.tool("draft_assignment", DraftAssignmentInput.shape, async (input) => {
-    try {
-      const result = await draftAssignment(input, pool);
-      return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
-    } catch (err) {
-      return toErrorResponse(err);
+  server.registerTool(
+    "draft_assignment",
+    {
+      description:
+        "Create a DRAFT assignment linking a consultant to a project for a number of hours. Restricted to ADMIN and RESOURCING_MANAGER roles. requester_role is the acting user's role, supplied by the calling agent — not to be set by the model.",
+      inputSchema: DraftAssignmentInput.shape,
+    },
+    async (input) => {
+      try {
+        const result = await draftAssignment(input, pool);
+        return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+      } catch (err) {
+        return toErrorResponse(err);
+      }
     }
-  });
+  );
 
   return server;
 }

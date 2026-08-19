@@ -13,9 +13,11 @@ function poolThatThrows(): Pool {
 describe("buildServer", () => {
   it("registers all three tools", async () => {
     const server = buildServer(poolThatThrows());
-    const tools = await server.server.listTools?.();
-    // Fallback: registerTool exposes tool names via internal registry in the SDK version pinned above.
-    expect(server).toBeDefined();
+    expect(Object.keys((server as any)._registeredTools).sort()).toEqual([
+      "draft_assignment",
+      "get_consultant_availability",
+      "get_project_margin",
+    ]);
   });
 
   it("converts a DB error inside get_project_margin into an isError response, not a throw", async () => {
