@@ -24,5 +24,9 @@ export default defineConfig({
     // root-level `npm test` resolves this file instead, so apps/web's React component tests
     // need jsdom applied here too.
     environmentMatchGlobs: [["apps/web/**", "jsdom"]],
+    // Mirrors apps/web/vitest.config.ts's setupFiles: a root-level `npm test` resolves THIS
+    // config (see comment above), so apps/web's jest-dom matchers (toBeInTheDocument, etc.)
+    // need to be wired in here too, not just in apps/web's own config.
+    setupFiles: ["./apps/web/test/setup.ts"],
   },
 });
