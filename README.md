@@ -63,7 +63,7 @@ sequenceDiagram
     participant API as /api/chat
     participant Orc as orchestrator.classifyIntent
     participant Spec as specialist (staffing/finance/resourcing)
-    participant Loop as toolLoop.runToolLoop
+    participant ToolLoop as toolLoop.runToolLoop
     participant LLM as Ollama
     participant MCP as MCP server
     participant DB as Postgres
@@ -79,27 +79,27 @@ sequenceDiagram
     alt staffing_match / margin_check
         API->>Spec: run({message, role, model, runId, onTraceEvent})
         Note over Spec: finance also has find_consultant_by_name,<br/>so it can resolve a name to a consultant_id<br/>before calling get_project_margin
-        Spec->>Loop: runToolLoop({systemPrompt, tools, role, model})
+        Spec->>ToolLoop: runToolLoop({systemPrompt, tools, role, model})
         rect rgb(200, 250, 200)
-            Note over Loop: up to 5 steps, up to 5 total tool calls
-            Loop->>LLM: chat(messages, tools, model)
-            LLM-->>Loop: tool_calls[] or final content
-            Loop-->>Web: SSE: tool_call trace event
-            Note over Loop: requester_role forced to real session role<br/>(model-claimed role discarded)
-            Loop->>MCP: callMcpTool(name, {...args, requester_role})
+            Note over ToolLoop: up to 5 steps, up to 5 total tool calls
+            ToolLoop->>LLM: chat(messages, tools, model)
+            LLM-->>ToolLoop: tool_calls[] or final content
+            ToolLoop-->>Web: SSE: tool_call trace event
+            Note over ToolLoop: requester_role forced to real session role<br/>(model-claimed role discarded)
+            ToolLoop->>MCP: callMcpTool(name, {...args, requester_role})
             MCP->>MCP: requireRole() check
             alt authorized
                 MCP->>DB: query
                 DB-->>MCP: rows
-                MCP-->>Loop: result
+                MCP-->>ToolLoop: result
             else not authorized
-                MCP-->>Loop: PERMISSION_DENIED
-                Loop-->>Web: SSE: permission_denied event
-                Note over Loop: stops immediately, no retry
+                MCP-->>ToolLoop: PERMISSION_DENIED
+                ToolLoop-->>Web: SSE: permission_denied event
+                Note over ToolLoop: stops immediately, no retry
             end
-            Loop-->>Web: SSE: tool_result trace event
+            ToolLoop-->>Web: SSE: tool_result trace event
         end
-        Loop-->>Spec: {finalAnswer, trace}
+        ToolLoop-->>Spec: {finalAnswer, trace}
     else draft_assignment
         API->>Spec: resourcing.run({message, role})
         alt role not ADMIN/RESOURCING_MANAGER
