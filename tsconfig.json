@@ -1,4 +1,10 @@
 {
+  // NOTE: this root tsconfig covers evals/ and db/ only. packages/mcp-server and packages/shared
+  // have no tsconfig of their own yet and are NOT type-checked by `npm run typecheck` at the repo
+  // root — packages/agent has its own tsconfig and is typechecked separately (see the root
+  // package.json "typecheck" script, which invokes packages/agent's own typecheck script too).
+  // Adding tsconfigs for mcp-server/shared is out of scope for this plan; a future plan should
+  // cover them.
   "extends": "./tsconfig.base.json",
   "include": ["evals/**/*.ts", "db/**/*.ts"],
   "exclude": ["node_modules"]
