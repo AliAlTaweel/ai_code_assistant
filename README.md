@@ -80,12 +80,13 @@ sequenceDiagram
         API->>Spec: run({message, role, model, runId, onTraceEvent})
         Note over Spec: finance also has find_consultant_by_name,<br/>so it can resolve a name to a consultant_id<br/>before calling get_project_margin
         Spec->>Loop: runToolLoop({systemPrompt, tools, role, model})
-        loop up to 5 steps, up to 5 total tool calls
+        rect rgb(200, 250, 200)
+            Note over Loop: up to 5 steps, up to 5 total tool calls
             Loop->>LLM: chat(messages, tools, model)
             LLM-->>Loop: tool_calls[] or final content
             Loop-->>Web: SSE: tool_call trace event
-            Note over Loop: requester_role is ALWAYS overwritten<br/>with the real session role here —<br/>a model-claimed role is discarded
-            Loop->>MCP: callMcpTool(name, {...args, requester_role: role})
+            Note over Loop: requester_role forced to real session role<br/>(model-claimed role discarded)
+            Loop->>MCP: callMcpTool(name, {...args, requester_role})
             MCP->>MCP: requireRole() check
             alt authorized
                 MCP->>DB: query
@@ -94,7 +95,7 @@ sequenceDiagram
             else not authorized
                 MCP-->>Loop: PERMISSION_DENIED
                 Loop-->>Web: SSE: permission_denied event
-                Note over Loop: loop stops immediately, no retry
+                Note over Loop: stops immediately, no retry
             end
             Loop-->>Web: SSE: tool_result trace event
         end
