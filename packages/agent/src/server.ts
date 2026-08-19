@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import type { Pool } from "pg";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { existsSync, readFileSync } from "node:fs";
@@ -10,8 +10,18 @@ import * as staffing from "./specialists/staffing.js";
 import * as finance from "./specialists/finance.js";
 import * as resourcing from "./specialists/resourcing.js";
 import type { Role } from "@skillsmatch/shared";
+import type { TraceEvent } from "./toolLoop.js";
 
 const EVAL_REPORT_PATH = new URL("../../../evals/eval_report.json", import.meta.url);
+
+const sseClients = new Set<FastifyReply>();
+
+function emitTrace(event: TraceEvent): void {
+  const payload = `event: trace\ndata: ${JSON.stringify(event)}\n\n`;
+  for (const reply of sseClients) {
+    reply.raw.write(payload);
+  }
+}
 
 export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstance {
   const app = Fastify();
@@ -20,17 +30,22 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
     const { message, role } = request.body;
     const intent = await classifyIntent(message);
 
+    let result: { finalAnswer: string; trace: TraceEvent[] };
     if (intent === "staffing_match") {
-      return staffing.run({ message, role, client: deps.mcpClient, pool: deps.pool });
+      result = await staffing.run({ message, role, client: deps.mcpClient, pool: deps.pool });
+    } else if (intent === "margin_check") {
+      result = await finance.run({ message, role, client: deps.mcpClient, pool: deps.pool });
+    } else if (intent === "draft_assignment") {
+      result = await resourcing.run({ message, role, client: deps.mcpClient, pool: deps.pool });
+    } else {
+      const response = await chat([{ role: "user", content: message }]);
+      result = { finalAnswer: response.content, trace: [] };
     }
-    if (intent === "margin_check") {
-      return finance.run({ message, role, client: deps.mcpClient, pool: deps.pool });
+
+    for (const event of result.trace) {
+      emitTrace(event);
     }
-    if (intent === "draft_assignment") {
-      return resourcing.run({ message, role, client: deps.mcpClient, pool: deps.pool });
-    }
-    const response = await chat([{ role: "user", content: message }]);
-    return { finalAnswer: response.content, trace: [] };
+    return result;
   });
 
   app.post<{ Body: { pendingActionId: string } }>("/api/agent/approve", async (request, reply) => {
@@ -56,6 +71,20 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
     }
     await resolvePendingAction(deps.pool, action.id, "REJECTED");
     return { status: "REJECTED" };
+  });
+
+  app.get("/api/trace/stream", (request, reply) => {
+    reply.raw.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    // Flush headers immediately so the client's connection is established right away,
+    // rather than waiting for the first emitTrace() write (which may be seconds away,
+    // or may never come for a connection that just watches future chats).
+    reply.raw.flushHeaders();
+    sseClients.add(reply);
+    request.raw.on("close", () => sseClients.delete(reply));
   });
 
   app.get("/api/evals/latest", async (_request, reply) => {
