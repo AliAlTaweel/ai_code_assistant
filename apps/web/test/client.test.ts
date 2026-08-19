@@ -21,6 +21,22 @@ describe("postChat", () => {
   });
 });
 
+describe("postChat error handling", () => {
+  it("throws when the response is not ok instead of resolving with an error body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        text: async () => "boom",
+      })
+    );
+
+    await expect(postChat("find a go engineer", "CONSULTANT")).rejects.toThrow(/500/);
+  });
+});
+
 describe("listUsers", () => {
   it("GETs /api/users", async () => {
     vi.stubGlobal(

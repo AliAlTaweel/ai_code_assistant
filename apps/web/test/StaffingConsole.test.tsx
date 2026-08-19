@@ -24,4 +24,21 @@ describe("StaffingConsole", () => {
     await waitFor(() => screen.getByText("Found Alice Chen."));
     expect(client.postChat).toHaveBeenCalledWith("find a go engineer", "ADMIN");
   });
+
+  it("shows a visible error message when postChat rejects", async () => {
+    vi.spyOn(client, "listUsers").mockResolvedValue([{ id: "u1", name: "Ava", role: "ADMIN" }]);
+    vi.spyOn(client, "postChat").mockRejectedValue(new Error("postChat failed: 500"));
+
+    render(
+      <RoleProvider>
+        <StaffingConsole />
+      </RoleProvider>
+    );
+
+    await waitFor(() => screen.getByPlaceholderText(/ask/i));
+    fireEvent.change(screen.getByPlaceholderText(/ask/i), { target: { value: "find a go engineer" } });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => screen.getByText(/failed to get a response/i));
+  });
 });
