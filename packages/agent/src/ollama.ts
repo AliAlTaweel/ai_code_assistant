@@ -58,11 +58,19 @@ export async function listChatModels(): Promise<OllamaModelInfo[]> {
   // Only surface models capable of tool calling — the specialists and classifier all rely on
   // structured tool_calls, so a model without that capability (an embedding or vision-only
   // model, for example) would silently fail or be unusable here.
-  return body.models
+  const models = body.models
     .filter((m) => m.capabilities?.includes("tools"))
     .map((m) => ({
       name: m.name,
       parameterSize: m.details?.parameter_size,
       supportsTools: true,
     }));
+
+  // Sort to put gemma4:e4b first (preferred default), then rest in original order
+  const gemmaIndex = models.findIndex((m) => m.name === "gemma4:e4b");
+  if (gemmaIndex > 0) {
+    const [gemma] = models.splice(gemmaIndex, 1);
+    models.unshift(gemma);
+  }
+  return models;
 }
