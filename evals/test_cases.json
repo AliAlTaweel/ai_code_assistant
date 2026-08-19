@@ -1,0 +1,38 @@
+[
+  {
+    "id": "A",
+    "description": "Valid staffing match with high availability",
+    "role": "CONSULTANT",
+    "message": "Find me a senior Go engineer with at least 20 hours available per week",
+    "expectedToolSequence": ["get_consultant_availability"],
+    "expectedGroundedTerms": ["Alice Chen"],
+    "expectPermissionDenied": false
+  },
+  {
+    "id": "B",
+    "description": "Permission restriction check on the finance tool",
+    "role": "RESOURCING_MANAGER",
+    "message": "What's the profit margin if we bill Alice Chen at $170 an hour?",
+    "expectedToolSequence": ["get_project_margin"],
+    "expectedGroundedTerms": [],
+    "expectPermissionDenied": true
+  },
+  {
+    "id": "C",
+    "description": "Ambiguous query requiring constraint relaxation",
+    "role": "CONSULTANT",
+    "message": "Find a consultant skilled in Go, Kubernetes, Terraform, and Rust, available 40 hours a week",
+    "expectedToolSequence": ["get_consultant_availability"],
+    "expectedGroundedTerms": [],
+    "expectPermissionDenied": false
+  },
+  {
+    "id": "D",
+    "description": "Edge case with zero available consultants",
+    "role": "CONSULTANT",
+    "message": "Find a consultant skilled in COBOL mainframe programming",
+    "expectedToolSequence": ["get_consultant_availability"],
+    "expectedGroundedTerms": [],
+    "expectPermissionDenied": false
+  }
+]
