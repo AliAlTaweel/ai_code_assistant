@@ -4,8 +4,19 @@ export function toolSelectionAccuracy(trace: TraceEvent[], expected: string[]): 
   const actual = trace
     .filter((e) => e.type === "tool_call")
     .map((e) => e.detail.split("(")[0]);
-  if (actual.length !== expected.length) return false;
-  return actual.every((name, i) => name === expected[i]);
+  // The agent's tool loop retries a tool call (up to MAX_EMPTY_RESULT_RETRIES times) whenever it
+  // gets an empty result back, producing several consecutive tool_call events for what is really a
+  // single logical tool use. Collapse consecutive duplicate tool names before comparing so a
+  // single-entry `expected` still matches a retried call correctly.
+  const collapsed = actual.filter((name, i) => name !== actual[i - 1]);
+  if (collapsed.length !== expected.length) return false;
+  return collapsed.every((name, i) => name === expected[i]);
+}
+
+export function noForbiddenTerms(finalAnswer: string, forbiddenTerms: string[] = []): boolean {
+  if (forbiddenTerms.length === 0) return true;
+  const lowerAnswer = finalAnswer.toLowerCase();
+  return forbiddenTerms.every((term) => !lowerAnswer.includes(term.toLowerCase()));
 }
 
 export function groundingScore(
