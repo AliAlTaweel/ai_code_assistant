@@ -4,7 +4,15 @@ const CHAT_MODEL = "qwen2.5-coder:32b";
 export interface OllamaMessage {
   role: "system" | "user" | "assistant" | "tool";
   content: string;
-  tool_calls?: Array<{ function: { name: string; arguments: Record<string, unknown> } }>;
+  tool_calls?: Array<{
+    /** Present on some providers/models; used to correlate a tool result back to its call. */
+    id?: string;
+    function: { name: string; arguments: Record<string, unknown> };
+  }>;
+  /** Only meaningful on role: "tool" messages — the name of the tool that produced this result. */
+  name?: string;
+  /** Only meaningful on role: "tool" messages — correlates the result back to its originating call. */
+  tool_call_id?: string;
 }
 
 export interface OllamaToolDef {

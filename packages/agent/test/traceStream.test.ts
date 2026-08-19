@@ -22,7 +22,14 @@ describe("GET /api/trace/stream", () => {
     vi.spyOn(orchestrator, "classifyIntent").mockResolvedValue("staffing_match");
     vi.spyOn(staffing, "run").mockResolvedValue({
       finalAnswer: "Found Alice.",
-      trace: [{ type: "tool_call", detail: "get_consultant_availability({})" }],
+      trace: [
+        {
+          type: "tool_call",
+          detail: "get_consultant_availability({})",
+          timestamp: Date.now(),
+          runId: "test-run-id",
+        },
+      ],
     });
 
     app = buildApp({ pool: {} as any, mcpClient: {} as any });

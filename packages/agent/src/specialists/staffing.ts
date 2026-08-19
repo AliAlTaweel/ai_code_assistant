@@ -1,7 +1,7 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Pool } from "pg";
 import type { Role } from "@skillsmatch/shared";
-import { runToolLoop, type ToolLoopResult } from "../toolLoop.js";
+import { runToolLoop, type ToolLoopResult, type TraceEvent } from "../toolLoop.js";
 
 const TOOLS = [
   {
@@ -29,6 +29,8 @@ export async function run(opts: {
   role: Role;
   client: Client;
   pool: Pool;
+  runId?: string;
+  onTraceEvent?: (event: TraceEvent) => void;
 }): Promise<ToolLoopResult> {
   return runToolLoop({
     systemPrompt: SYSTEM_PROMPT,
@@ -36,5 +38,7 @@ export async function run(opts: {
     tools: TOOLS,
     client: opts.client,
     role: opts.role,
+    runId: opts.runId,
+    onTraceEvent: opts.onTraceEvent,
   });
 }
