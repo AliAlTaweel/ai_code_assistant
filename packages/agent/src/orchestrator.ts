@@ -16,6 +16,19 @@ export async function classifyIntent(message: string): Promise<Intent> {
     { role: "system", content: SYSTEM_PROMPT },
     { role: "user", content: message },
   ]);
-  const label = response.content.trim().toLowerCase() as Intent;
-  return VALID_INTENTS.includes(label) ? label : "general";
+  // Be forgiving of near-miss formatting (trailing punctuation, stray whitespace, a label
+  // embedded in a short sentence) rather than immediately falling back to "general" — a
+  // fallback to "general" means an unguarded, tool-less chat() call that can hallucinate
+  // financial/staffing data, so it should only be a true last resort.
+  const raw = response.content.trim().toLowerCase();
+  const exact = raw as Intent;
+  if (VALID_INTENTS.includes(exact)) {
+    return exact;
+  }
+  const stripped = raw.replace(/^[^a-z]+|[^a-z]+$/g, "") as Intent;
+  if (VALID_INTENTS.includes(stripped)) {
+    return stripped;
+  }
+  const contained = VALID_INTENTS.find((intent) => intent !== "general" && raw.includes(intent));
+  return contained ?? "general";
 }
