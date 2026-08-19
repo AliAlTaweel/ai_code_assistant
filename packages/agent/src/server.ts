@@ -9,6 +9,7 @@ import {
   getPendingAction,
   resolvePendingAction,
   revertPendingAction,
+  listPendingActions,
 } from "./pendingActions.js";
 import * as staffing from "./specialists/staffing.js";
 import * as finance from "./specialists/finance.js";
@@ -167,11 +168,13 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
     return { status: "REJECTED" };
   });
 
-  app.get("/api/agent/pending-actions", async () => {
-    const { rows } = await deps.pool.query(
-      `SELECT * FROM pending_actions WHERE status = 'WAITING_FOR_APPROVAL' ORDER BY created_at ASC`
-    );
+  app.get("/api/users", async () => {
+    const { rows } = await deps.pool.query(`SELECT id, name, role FROM users ORDER BY name`);
     return rows;
+  });
+
+  app.get("/api/agent/pending-actions", async () => {
+    return listPendingActions(deps.pool);
   });
 
   app.get("/api/trace/stream", (request, reply) => {

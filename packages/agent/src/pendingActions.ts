@@ -56,6 +56,13 @@ export async function resolvePendingAction(
  * WAITING_FOR_APPROVAL so it can be retried, rather than leaving it stuck as "approved"
  * with no assignment actually created.
  */
+export async function listPendingActions(pool: Pool): Promise<PendingAction[]> {
+  const { rows } = await pool.query<PendingAction>(
+    `SELECT id, type, payload, status FROM pending_actions WHERE status = 'WAITING_FOR_APPROVAL' ORDER BY created_at DESC`
+  );
+  return rows;
+}
+
 export async function revertPendingAction(
   pool: Pool,
   id: string,
