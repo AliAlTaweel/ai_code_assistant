@@ -6,6 +6,19 @@ import * as ollama from "../src/ollama.js";
 import * as pendingActions from "../src/pendingActions.js";
 import * as mcpClient from "../src/mcpClient.js";
 
+describe("CORS", () => {
+  it("allows the Vite dev origin on responses", async () => {
+    const app = buildApp({ pool: {} as any, mcpClient: {} as any });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/evals/latest",
+      headers: { origin: "http://localhost:5173" },
+    });
+
+    expect(response.headers["access-control-allow-origin"]).toBe("http://localhost:5173");
+  });
+});
+
 describe("POST /api/chat", () => {
   it("dispatches a staffing_match intent to the staffing specialist", async () => {
     vi.spyOn(orchestrator, "classifyIntent").mockResolvedValue("staffing_match");

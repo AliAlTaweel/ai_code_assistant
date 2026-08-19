@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
+import cors from "@fastify/cors";
 import type { Pool } from "pg";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { existsSync, readFileSync } from "node:fs";
@@ -18,6 +19,9 @@ import type { Role } from "@skillsmatch/shared";
 import type { TraceEvent } from "./toolLoop.js";
 
 const EVAL_REPORT_PATH = new URL("../../../evals/eval_report.json", import.meta.url);
+
+// Vite dev server origin for apps/web. Overridable for non-default dev ports/hosts.
+const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:5173";
 
 // The "general" intent has no tools and no grounding data available to it — it must never
 // state specific financial/staffing facts as if it looked them up, since it didn't.
@@ -39,6 +43,12 @@ function emitTrace(event: TraceEvent): void {
 
 export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstance {
   const app = Fastify();
+
+  // Registered synchronously (not awaited): Fastify queues plugin registration and resolves it
+  // before app.listen()/app.ready()/app.inject() encapsulate, so routes below can still be
+  // declared synchronously and existing test call sites that use app.inject() directly (without
+  // an explicit await app.ready() first) continue to work unchanged.
+  app.register(cors, { origin: WEB_ORIGIN });
 
   app.post<{ Body: { message: string; role: Role } }>(
     "/api/chat",
