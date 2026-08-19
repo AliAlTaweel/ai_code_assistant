@@ -9,28 +9,28 @@ export function EvalsTab() {
   }, []);
 
   if (run === undefined) return null;
-  if (run === null) return <p>No eval runs yet.</p>;
+  if (run === null) return <p className="text-sm text-gray-500">No eval runs yet.</p>;
 
   return (
     <div>
-      <p>
+      <p className="mb-3 text-sm font-medium text-gray-700">
         Pass rate: {(run.summary.passRate * 100).toFixed(0)}% · Avg latency:{" "}
         {run.summary.avgLatencyMs.toFixed(0)}ms
       </p>
-      <table>
+      <table className="w-full border-collapse overflow-hidden rounded-lg border border-gray-200 text-sm">
         <thead>
-          <tr>
-            <th>Scenario</th>
-            <th>Passed</th>
-            <th>Latency (ms)</th>
+          <tr className="bg-gray-100 text-left">
+            <th className="border-b border-gray-200 px-3 py-2 font-semibold text-gray-700">Scenario</th>
+            <th className="border-b border-gray-200 px-3 py-2 font-semibold text-gray-700">Passed</th>
+            <th className="border-b border-gray-200 px-3 py-2 font-semibold text-gray-700">Latency (ms)</th>
           </tr>
         </thead>
         <tbody>
           {run.results.map((result) => (
-            <tr key={result.id}>
-              <td>{result.id}</td>
-              <td>{result.passed ? "✅" : "❌"}</td>
-              <td>{result.latencyMs}</td>
+            <tr key={result.id} className="odd:bg-white even:bg-gray-50">
+              <td className="border-b border-gray-100 px-3 py-2 text-gray-800">{result.id}</td>
+              <td className="border-b border-gray-100 px-3 py-2">{result.passed ? "✅" : "❌"}</td>
+              <td className="border-b border-gray-100 px-3 py-2 text-gray-800">{result.latencyMs}</td>
             </tr>
           ))}
         </tbody>
