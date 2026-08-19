@@ -25,6 +25,8 @@ export interface ToolLoopOptions {
   client: Client;
   /** The acting user's real role. Always wins over any requester_role the model supplies. */
   role: Role;
+  /** Ollama model name to use for this run; falls back to ollama.ts's configured default. */
+  model?: string;
   maxSteps?: number;
   /** Correlates this run's trace events with the classification event emitted in server.ts.
    *  Generated with crypto.randomUUID() if not supplied. */
@@ -58,7 +60,7 @@ export async function runToolLoop(opts: ToolLoopOptions): Promise<ToolLoopResult
   }
 
   for (let step = 0; step < maxSteps; step++) {
-    const response = await chat(messages, opts.tools);
+    const response = await chat(messages, opts.tools, opts.model);
     messages.push(response);
 
     if (!response.tool_calls || response.tool_calls.length === 0) {

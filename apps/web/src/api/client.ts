@@ -33,16 +33,29 @@ export interface EvalRun {
   summary: { passRate: number; avgLatencyMs: number };
 }
 
+export interface ModelInfo {
+  name: string;
+  parameterSize?: string;
+  supportsTools: boolean;
+}
+
 export async function postChat(
   message: string,
-  role: Role
+  role: Role,
+  model?: string
 ): Promise<{ finalAnswer: string; trace: TraceEvent[] }> {
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, role }),
+    body: JSON.stringify({ message, role, model }),
   });
   await assertOk(response, "postChat");
+  return response.json();
+}
+
+export async function listModels(): Promise<ModelInfo[]> {
+  const response = await fetch(`${API_BASE}/api/models`);
+  await assertOk(response, "listModels");
   return response.json();
 }
 

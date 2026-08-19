@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { postChat, listUsers, getLatestEvals } from "../src/api/client.js";
+import { postChat, listUsers, getLatestEvals, listModels } from "../src/api/client.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -52,5 +52,39 @@ describe("getLatestEvals", () => {
   it("returns null on a 404", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
     expect(await getLatestEvals()).toBeNull();
+  });
+});
+
+describe("listModels", () => {
+  it("GETs /api/models and returns the parsed list", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ name: "llama3.1:8b", parameterSize: "8.0B", supportsTools: true }],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const models = await listModels();
+
+    expect(models).toEqual([{ name: "llama3.1:8b", parameterSize: "8.0B", supportsTools: true }]);
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/models"));
+  });
+});
+
+describe("postChat with a model override", () => {
+  it("includes the model field in the request body when provided", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ finalAnswer: "hi", trace: [] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await postChat("find a go engineer", "CONSULTANT", "llama3.1:8b");
+
+    const [, options] = fetchMock.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({
+      message: "find a go engineer",
+      role: "CONSULTANT",
+      model: "llama3.1:8b",
+    });
   });
 });

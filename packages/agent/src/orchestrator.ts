@@ -11,11 +11,15 @@ draft_assignment, or general.
 - draft_assignment: explicitly asking to assign/book a consultant to a project
 - general: anything else`;
 
-export async function classifyIntent(message: string): Promise<Intent> {
-  const response = await chat([
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: message },
-  ]);
+export async function classifyIntent(message: string, model?: string): Promise<Intent> {
+  const response = await chat(
+    [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: message },
+    ],
+    undefined,
+    model
+  );
   // Be forgiving of near-miss formatting (trailing punctuation, stray whitespace, a label
   // embedded in a short sentence) rather than immediately falling back to "general" — a
   // fallback to "general" means an unguarded, tool-less chat() call that can hallucinate

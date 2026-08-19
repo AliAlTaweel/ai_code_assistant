@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { postChat, type TraceEvent } from "../api/client.js";
 import { useCurrentUser } from "../context/RoleContext.js";
+import { useModelContext } from "../context/ModelContext.js";
 
 interface Turn {
   role: "user" | "agent";
@@ -17,6 +18,7 @@ interface StaffingConsoleProps {
 
 export function StaffingConsole({ prefill, onConsumePrefill }: StaffingConsoleProps) {
   const currentUser = useCurrentUser();
+  const { selectedModel } = useModelContext();
   const [input, setInput] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -38,7 +40,7 @@ export function StaffingConsole({ prefill, onConsumePrefill }: StaffingConsolePr
     setIsSending(true);
 
     try {
-      const result = await postChat(message, currentUser.role);
+      const result = await postChat(message, currentUser.role, selectedModel ?? undefined);
       setTurns((prev) => [...prev, { role: "agent", text: result.finalAnswer, trace: result.trace }]);
     } catch (err) {
       console.error("Failed to send chat message:", err);

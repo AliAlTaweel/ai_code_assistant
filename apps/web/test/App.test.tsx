@@ -8,6 +8,9 @@ afterEach(() => vi.restoreAllMocks());
 describe("App", () => {
   it("switches between views via nav buttons", async () => {
     vi.spyOn(client, "listUsers").mockResolvedValue([{ id: "u1", name: "Ava", role: "ADMIN" }]);
+    vi.spyOn(client, "listModels").mockResolvedValue([
+      { name: "llama3.1:8b", parameterSize: "8.0B", supportsTools: true },
+    ]);
     vi.spyOn(client, "listPendingActions").mockResolvedValue([]);
     vi.spyOn(client, "getLatestEvals").mockResolvedValue(null);
     vi.spyOn(client, "subscribeTrace").mockReturnValue(() => {});
@@ -25,6 +28,9 @@ describe("App", () => {
 
   it("keeps trace events received while on another view when switching to Trace", async () => {
     vi.spyOn(client, "listUsers").mockResolvedValue([{ id: "u1", name: "Ava", role: "ADMIN" }]);
+    vi.spyOn(client, "listModels").mockResolvedValue([
+      { name: "llama3.1:8b", parameterSize: "8.0B", supportsTools: true },
+    ]);
     vi.spyOn(client, "listPendingActions").mockResolvedValue([]);
     vi.spyOn(client, "getLatestEvals").mockResolvedValue(null);
 

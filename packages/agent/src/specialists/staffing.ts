@@ -30,6 +30,7 @@ export async function run(opts: {
   client: Client;
   pool: Pool;
   runId?: string;
+  model?: string;
   onTraceEvent?: (event: TraceEvent) => void;
 }): Promise<ToolLoopResult> {
   return runToolLoop({
@@ -39,6 +40,7 @@ export async function run(opts: {
     client: opts.client,
     role: opts.role,
     runId: opts.runId,
+    model: opts.model,
     onTraceEvent: opts.onTraceEvent,
   });
 }

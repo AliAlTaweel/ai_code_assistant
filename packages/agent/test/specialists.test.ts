@@ -41,6 +41,20 @@ describe("finance specialist", () => {
 
     expect(runToolLoopSpy).toHaveBeenCalledWith(expect.objectContaining({ role: "FINANCE" }));
   });
+
+  it("offers both find_consultant_by_name and get_project_margin as tools", async () => {
+    const runToolLoopSpy = vi
+      .spyOn(toolLoop, "runToolLoop")
+      .mockResolvedValue({ finalAnswer: "ok", trace: [] });
+
+    await financeRun({ message: "what's the margin?", role: "FINANCE", client: {} as any, pool: {} as any });
+
+    const toolsPassed = runToolLoopSpy.mock.calls[0][0].tools;
+    expect(toolsPassed.map((t) => t.function.name).sort()).toEqual([
+      "find_consultant_by_name",
+      "get_project_margin",
+    ]);
+  });
 });
 
 describe("resourcing specialist", () => {

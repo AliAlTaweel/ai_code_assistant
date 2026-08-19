@@ -10,11 +10,11 @@ dashboard for observing and controlling all of it.
 ```mermaid
 flowchart LR
     subgraph Browser
-        Web["apps/web (React)\nRole switcher · Chat console\nTrace panel · HITL queue · Evals tab"]
+        Web["apps/web (React)\nRole switcher · Model selector · Chat console\nTrace panel · HITL queue · Evals tab"]
     end
 
     subgraph AgentService["packages/agent (Fastify)"]
-        API["/api/chat\n/api/agent/approve|reject\n/api/agent/pending-actions\n/api/trace/stream (SSE)\n/api/evals/latest"]
+        API["/api/chat\n/api/agent/approve|reject\n/api/agent/pending-actions\n/api/trace/stream (SSE)\n/api/evals/latest\n/api/models · /api/users"]
         Orchestrator["orchestrator.ts\nclassifyIntent()"]
         Specialists["specialists/\nstaffing · finance · resourcing"]
         ToolLoop["toolLoop.ts\nrunToolLoop()"]
@@ -22,14 +22,15 @@ flowchart LR
     end
 
     subgraph MCP["packages/mcp-server (stdio)"]
-        Tools["get_consultant_availability\nget_project_margin\ndraft_assignment"]
+        Tools["get_consultant_availability\nfind_consultant_by_name\nget_project_margin\ndraft_assignment"]
         RBAC["requireRole() per tool"]
     end
 
-    Ollama["Ollama\nqwen2.5-coder:32b\n(OpenAI-compatible /api/chat)"]
+    Ollama["Ollama\nmodel chosen per-request\n(qwen2.5-coder:32b · gemma4:e4b · llama3.1:8b)\n(OpenAI-compatible /api/chat)"]
     DB[("Postgres 16 + pgvector\nconsultants · projects\nassignments · pending_actions\nusers")]
 
-    Web -- "fetch / EventSource" --> API
+    Web -- "GET /api/models\n(lists tool-capable models)" --> API
+    Web -- "fetch / EventSource\n{message, role, model}" --> API
     API --> Orchestrator
     Orchestrator -- "chat()" --> Ollama
     API -- "intent" --> Specialists
@@ -76,10 +77,11 @@ sequenceDiagram
     API-->>Web: SSE: classification event
 
     alt staffing_match / margin_check
-        API->>Spec: run({message, role, runId, onTraceEvent})
-        Spec->>Loop: runToolLoop({systemPrompt, tools, role})
+        API->>Spec: run({message, role, model, runId, onTraceEvent})
+        Note over Spec: finance also has find_consultant_by_name,<br/>so it can resolve a name to a consultant_id<br/>before calling get_project_margin
+        Spec->>Loop: runToolLoop({systemPrompt, tools, role, model})
         loop up to 5 steps, up to 5 total tool calls
-            Loop->>LLM: chat(messages, tools)
+            Loop->>LLM: chat(messages, tools, model)
             LLM-->>Loop: tool_calls[] or final content
             Loop-->>Web: SSE: tool_call trace event
             Note over Loop: requester_role is ALWAYS overwritten<br/>with the real session role here —<br/>a model-claimed role is discarded
@@ -159,10 +161,22 @@ sequenceDiagram
 |---|---|
 | `db/` | Postgres 16 + pgvector schema, seed data, consultant-embedding generation |
 | `packages/shared/` | Shared `Role` enum, MCP tool Zod schemas, DB pool helper |
-| `packages/mcp-server/` | MCP server: `get_consultant_availability`, `get_project_margin`, `draft_assignment`, each RBAC-gated via `requireRole()` |
+| `packages/mcp-server/` | MCP server: `get_consultant_availability`, `find_consultant_by_name`, `get_project_margin`, `draft_assignment`, each RBAC-gated via `requireRole()` (`find_consultant_by_name` is open to all roles — it discloses nothing `get_consultant_availability` doesn't already) |
 | `packages/agent/` | Fastify HTTP+SSE service: intent classifier, tool loop, three specialists, HITL approve/reject, trace streaming |
 | `evals/` | Offline scenario runner scoring the live `/api/chat` API on tool-selection accuracy, grounding, and permission-boundary compliance |
 | `apps/web/` | React dashboard: role switcher, chat console, live execution trace panel, HITL approval queue, eval metrics tab |
+
+## Model selection
+
+The dashboard's model selector (`GET /api/models`, backed by Ollama's `/api/tags`) lists every
+locally-pulled model that reports `tools` in its capabilities, and threads the chosen `model` name
+through `/api/chat` into the classifier, every specialist, and the tool loop's `chat()` calls — so
+a single request is free to use a different model than the last one. In this environment,
+`qwen2.5-coder:32b` is flagged red in the picker: it reliably hangs Ollama's single-request queue
+on this machine. `gemma4:e4b` and `llama3.1:8b` are smaller and respond, though a small model may
+still narrate a tool call as prose instead of issuing it, or stop after one call in a
+multi-tool-call chain (e.g. resolving a name, then never following up with the margin lookup) —
+model capability, not something the orchestration layer can paper over.
 
 ## Multi-agent orchestration, in short
 

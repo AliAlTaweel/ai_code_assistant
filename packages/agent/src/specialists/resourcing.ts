@@ -51,6 +51,7 @@ export async function run(opts: {
   client: Client;
   pool: Pool;
   runId?: string;
+  model?: string;
   onTraceEvent?: (event: TraceEvent) => void;
 }): Promise<ToolLoopResult> {
   if (!ROLES_ALLOWED_TO_DRAFT_ASSIGNMENTS.includes(opts.role)) {
@@ -68,10 +69,14 @@ export async function run(opts: {
     };
   }
 
-  const response = await chat([
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: opts.message },
-  ]);
+  const response = await chat(
+    [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: opts.message },
+    ],
+    undefined,
+    opts.model
+  );
 
   const runId = opts.runId ?? crypto.randomUUID();
   function record(type: TraceEvent["type"], detail: string): TraceEvent {

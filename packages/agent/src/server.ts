@@ -3,7 +3,7 @@ import cors from "@fastify/cors";
 import type { Pool } from "pg";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { existsSync, readFileSync } from "node:fs";
-import { chat } from "./ollama.js";
+import { chat, listChatModels } from "./ollama.js";
 import { classifyIntent } from "./orchestrator.js";
 import { callMcpTool } from "./mcpClient.js";
 import {
@@ -50,7 +50,7 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
   // an explicit await app.ready() first) continue to work unchanged.
   app.register(cors, { origin: WEB_ORIGIN });
 
-  app.post<{ Body: { message: string; role: Role } }>(
+  app.post<{ Body: { message: string; role: Role; model?: string } }>(
     "/api/chat",
     {
       schema: {
@@ -60,14 +60,15 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
           properties: {
             message: { type: "string", minLength: 1 },
             role: { type: "string" },
+            model: { type: "string" },
           },
         },
       },
     },
     async (request) => {
-      const { message, role } = request.body;
+      const { message, role, model } = request.body;
       const runId = crypto.randomUUID();
-      const intent = await classifyIntent(message);
+      const intent = await classifyIntent(message, model);
 
       // Emitted immediately (not batched with the specialist's trace) so the classification
       // shows up live in the trace stream before the specialist run even starts.
@@ -93,6 +94,7 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
           client: deps.mcpClient,
           pool: deps.pool,
           runId,
+          model,
           onTraceEvent,
         });
       } else if (intent === "margin_check") {
@@ -102,6 +104,7 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
           client: deps.mcpClient,
           pool: deps.pool,
           runId,
+          model,
           onTraceEvent,
         });
       } else if (intent === "draft_assignment") {
@@ -111,13 +114,18 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
           client: deps.mcpClient,
           pool: deps.pool,
           runId,
+          model,
           onTraceEvent,
         });
       } else {
-        const response = await chat([
-          { role: "system", content: GENERAL_SYSTEM_PROMPT },
-          { role: "user", content: message },
-        ]);
+        const response = await chat(
+          [
+            { role: "system", content: GENERAL_SYSTEM_PROMPT },
+            { role: "user", content: message },
+          ],
+          undefined,
+          model
+        );
         result = { finalAnswer: response.content, trace: [] };
       }
 
@@ -181,6 +189,14 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
   app.get("/api/users", async () => {
     const { rows } = await deps.pool.query(`SELECT id, name, role FROM users ORDER BY name`);
     return rows;
+  });
+
+  app.get("/api/models", async (_request, reply) => {
+    try {
+      return await listChatModels();
+    } catch (err) {
+      return reply.code(502).send({ error: `Ollama unreachable: ${(err as Error).message}` });
+    }
   });
 
   app.get("/api/agent/pending-actions", async () => {
