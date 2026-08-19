@@ -11,6 +11,7 @@
   {
     "id": "B",
     "description": "Permission restriction check on the finance tool",
+    "_note": "KNOWN LIMITATION: get_project_margin's MCP schema requires consultant_id: z.string().uuid(), validated before the RBAC check runs. db/seed.sql generates consultant ids via gen_random_uuid() at seed time, so there is no stable UUID to hardcode here without querying a live seeded DB. On a live run this message may produce a schema-validation error rather than the intended PERMISSION_DENIED trace event before the RBAC boundary is even reached. Left as-is per review guidance rather than spending time hunting for a seed-time UUID.",
     "role": "RESOURCING_MANAGER",
     "message": "What's the profit margin if we bill Alice Chen at $170 an hour?",
     "expectedToolSequence": ["get_project_margin"],
@@ -33,6 +34,7 @@
     "message": "Find a consultant skilled in COBOL mainframe programming",
     "expectedToolSequence": ["get_consultant_availability"],
     "expectedGroundedTerms": [],
-    "expectPermissionDenied": false
+    "expectPermissionDenied": false,
+    "forbiddenTerms": ["Alice Chen", "Ben Osei", "Carla Reyes"]
   }
 ]

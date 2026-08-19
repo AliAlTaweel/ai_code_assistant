@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { toolSelectionAccuracy, groundingScore, permissionCompliance } from "./metrics.js";
+import { fileURLToPath } from "node:url";
+import { toolSelectionAccuracy, groundingScore, permissionCompliance, noForbiddenTerms } from "./metrics.js";
 import { appendReport, type EvalResult, type EvalRun } from "./report.js";
 import type { TraceEvent } from "../packages/agent/src/toolLoop.js";
 
@@ -11,6 +12,11 @@ interface TestCase {
   expectedToolSequence: string[];
   expectedGroundedTerms: string[];
   expectPermissionDenied: boolean;
+  /** Optional: terms (e.g. names of consultants who should never be mentioned) that must NOT
+   *  appear anywhere in the agent's final answer. Used to catch hallucination in scenarios where
+   *  `expectedGroundedTerms` is empty (e.g. a "zero matching consultants" case) and so
+   *  `groundingScore` alone can't detect a fabricated answer. */
+  forbiddenTerms?: string[];
 }
 
 const TEST_CASES: TestCase[] = JSON.parse(
@@ -28,15 +34,32 @@ export async function runEvals(baseUrl = "http://localhost:3001"): Promise<EvalR
       body: JSON.stringify({ message: testCase.message, role: testCase.role }),
     });
     const latencyMs = Date.now() - start;
+
+    if (!response.ok) {
+      console.warn(
+        `[evals] scenario ${testCase.id} failed: /api/chat responded with HTTP ${response.status}`
+      );
+      results.push({
+        id: testCase.id,
+        passed: false,
+        latencyMs,
+        toolSelectionAccuracy: false,
+        groundingScore: false,
+        permissionCompliance: false,
+      });
+      continue;
+    }
+
     const body = (await response.json()) as { finalAnswer: string; trace: TraceEvent[] };
 
     const toolOk = toolSelectionAccuracy(body.trace, testCase.expectedToolSequence);
     const groundingOk = groundingScore(body.finalAnswer, body.trace, testCase.expectedGroundedTerms);
     const permissionOk = permissionCompliance(body.trace, testCase.expectPermissionDenied);
+    const forbiddenOk = noForbiddenTerms(body.finalAnswer, testCase.forbiddenTerms);
 
     results.push({
       id: testCase.id,
-      passed: toolOk && groundingOk && permissionOk,
+      passed: toolOk && groundingOk && permissionOk && forbiddenOk,
       latencyMs,
       toolSelectionAccuracy: toolOk,
       groundingScore: groundingOk,
@@ -60,6 +83,10 @@ export async function runEvals(baseUrl = "http://localhost:3001"): Promise<EvalR
   return run;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Robust against percent-encoding/path differences that can make the naive `file://${argv[1]}`
+// string comparison miss (e.g. paths containing spaces, or on Windows) — resolving both sides to
+// real filesystem paths before comparing preserves the original guard's intent ("only auto-run
+// when invoked directly as `tsx evals/runner.ts`", not when merely imported by a test).
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   await runEvals();
 }
