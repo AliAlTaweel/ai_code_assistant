@@ -1,4 +1,3 @@
-import React from "react";
 import { useRoleContext } from "../context/RoleContext.js";
 
 export function RoleSwitcher() {

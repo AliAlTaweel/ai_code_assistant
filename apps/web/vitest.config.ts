@@ -1,13 +1,15 @@
-import { config as loadEnv } from "dotenv";
-import { defineConfig } from "vitest/config";
+import { defineConfig, mergeConfig } from "vitest/config";
+import viteConfig from "./vite.config.js";
 
-const parsedEnv = loadEnv().parsed ?? {};
-
-export default defineConfig({
-  test: {
-    environment: "jsdom",
-    setupFiles: [],
-    env: parsedEnv,
-    testTimeout: 15000,
-  },
-});
+// Merging vite.config.ts (rather than a bare defineConfig) means tests share the same
+// @vitejs/plugin-react setup as dev/build, so JSX files don't need an explicit `import React`
+// just to satisfy Vitest's transform.
+export default mergeConfig(
+  viteConfig,
+  defineConfig({
+    test: {
+      environment: "jsdom",
+      setupFiles: [],
+    },
+  })
+);
