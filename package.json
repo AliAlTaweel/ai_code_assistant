@@ -1,5 +1,6 @@
 {
   "name": "skillsmatch-mcp",
+  "author": "Ali Al-Taweel <engalihaitham@gmail.com>",
   "private": true,
   "type": "module",
   "workspaces": [
