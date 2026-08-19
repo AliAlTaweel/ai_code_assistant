@@ -9,9 +9,11 @@
   ],
   "scripts": {
     "test": "vitest run",
+    "typecheck": "tsc --noEmit && npm run typecheck --workspace=@skillsmatch/agent && npm run typecheck --workspace=@skillsmatch/web",
     "db:apply-schema": "tsx db/apply.ts db/schema.sql $DATABASE_URL",
     "db:seed": "tsx db/apply.ts db/seed.sql $DATABASE_URL",
-    "db:generate-embeddings": "tsx db/generate-embeddings.ts"
+    "db:generate-embeddings": "tsx db/generate-embeddings.ts",
+    "evals": "tsx evals/runner.ts"
   },
   "devDependencies": {
     "@types/node": "^20.14.15",

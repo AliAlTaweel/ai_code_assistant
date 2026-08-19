@@ -24,3 +24,9 @@ export const DraftAssignmentInput = z.object({
   requester_role: Role,
 });
 export type DraftAssignmentInput = z.infer<typeof DraftAssignmentInput>;
+
+export const FindConsultantByNameInput = z.object({
+  name: z.string().min(1),
+  requester_role: Role,
+});
+export type FindConsultantByNameInput = z.infer<typeof FindConsultantByNameInput>;

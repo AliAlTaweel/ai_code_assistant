@@ -1,0 +1,46 @@
+SkillsMatch MCP - example questions to try in the dashboard
+=============================================================
+
+Tip: switch role and model using the dropdowns in the top nav before sending.
+Avoid "qwen2.5-coder:32b" (flagged red) - it hangs on this machine.
+"gemma4:e4b" reliably chains multi-step tool calls; "llama3.1:8b" sometimes
+stops after one tool call and fabricates the rest.
+
+1) STAFFING MATCH (any role)
+-----------------------------
+Find me a senior Go engineer with at least 20 hours available per week
+Who's available for React work, at least 15 hours a week?
+I need an AI/ML engineer with PyTorch experience, 10+ hours available
+
+2) MARGIN CHECK - allowed (role = ADMIN or FINANCE)
+-----------------------------------------------------
+What's the profit margin if we bill Alice Chen at $170 an hour?
+What's the margin on Ben Osei at a $150/hr bill rate?
+Compute the profit margin for Carla Reyes at $200/hour
+
+3) MARGIN CHECK - denied (role = CONSULTANT or RESOURCING_MANAGER)
+----------------------------------------------------------------------
+Same question as above - should come back as a permission denial
+(shown live in the Trace tab as a "permission_denied" event) instead
+of a number.
+
+4) DRAFT AN ASSIGNMENT - allowed (role = RESOURCING_MANAGER or ADMIN)
+--------------------------------------------------------------------------
+Assign Alice Chen to project X for 15 hours a week
+Assign Ben Osei to the React project for 20 hours
+
+Check the Approvals tab afterward - it creates a pending action, not a
+live booking. Approve / Reject / Modify it there.
+
+5) DRAFT AN ASSIGNMENT - denied (role = CONSULTANT)
+-------------------------------------------------------
+Same request as above - should be blocked before the model is even
+called (no LLM tool call in the trace at all).
+
+6) GENERAL / OFF-TOPIC (any role)
+-------------------------------------
+What's the weather like today?
+Tell me a joke
+
+Should fall through to the general intent with no tool calls, and
+shouldn't invent staffing or financial data.

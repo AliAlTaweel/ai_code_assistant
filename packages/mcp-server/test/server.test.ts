@@ -11,10 +11,11 @@ function poolThatThrows(): Pool {
 }
 
 describe("buildServer", () => {
-  it("registers all three tools", async () => {
+  it("registers all four tools", async () => {
     const server = buildServer(poolThatThrows());
     expect(Object.keys((server as any)._registeredTools).sort()).toEqual([
       "draft_assignment",
+      "find_consultant_by_name",
       "get_consultant_availability",
       "get_project_margin",
     ]);

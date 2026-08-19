@@ -4,10 +4,12 @@ import {
   GetConsultantAvailabilityInput,
   GetProjectMarginInput,
   DraftAssignmentInput,
+  FindConsultantByNameInput,
 } from "@skillsmatch/shared";
 import { getConsultantAvailability } from "./tools/getConsultantAvailability.js";
 import { getProjectMargin } from "./tools/getProjectMargin.js";
 import { draftAssignment } from "./tools/draftAssignment.js";
+import { findConsultantByName } from "./tools/findConsultantByName.js";
 
 function toErrorResponse(err: unknown) {
   return {
@@ -29,6 +31,23 @@ export function buildServer(pool: Pool): McpServer {
     async (input) => {
       try {
         const results = await getConsultantAvailability(input, pool);
+        return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
+      } catch (err) {
+        return toErrorResponse(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "find_consultant_by_name",
+    {
+      description:
+        "Look up consultants by (partial, case-insensitive) full name, returning id/full_name/title. Open to all roles. Use this to resolve a name to a consultant_id before calling tools that require one.",
+      inputSchema: FindConsultantByNameInput.shape,
+    },
+    async (input) => {
+      try {
+        const results = await findConsultantByName(input, pool);
         return { content: [{ type: "text" as const, text: JSON.stringify(results) }] };
       } catch (err) {
         return toErrorResponse(err);
