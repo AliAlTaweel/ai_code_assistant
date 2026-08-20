@@ -213,6 +213,8 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      "Access-Control-Allow-Origin": WEB_ORIGIN,
+      "Access-Control-Allow-Credentials": "true",
     });
     // Flush headers immediately so the client's connection is established right away,
     // rather than waiting for the first emitTrace() write (which may be seconds away,
@@ -227,6 +229,52 @@ export function buildApp(deps: { pool: Pool; mcpClient: Client }): FastifyInstan
       return reply.code(404).send({ error: "no eval report yet" });
     }
     return JSON.parse(readFileSync(EVAL_REPORT_PATH, "utf-8"));
+  });
+
+  app.get("/api/admin/consultants", async () => {
+    const { rows } = await deps.pool.query(
+      `SELECT id, full_name, title FROM consultants ORDER BY full_name`
+    );
+    return rows;
+  });
+
+  app.get<{ Params: { consultantId: string } }>(
+    "/api/admin/consultants/:consultantId/skills",
+    async (request) => {
+      const { consultantId } = request.params;
+      const { rows } = await deps.pool.query(
+        `SELECT id, skill_name, proficiency_level FROM skills
+         WHERE consultant_id = $1 ORDER BY skill_name`,
+        [consultantId]
+      );
+      return rows;
+    }
+  );
+
+  app.post<{
+    Body: { consultant_id: string; skill_name: string; proficiency_level: number };
+  }>("/api/admin/skills", async (request, reply) => {
+    const { consultant_id, skill_name, proficiency_level } = request.body;
+
+    if (!consultant_id || !skill_name || !proficiency_level) {
+      return reply.code(400).send({ error: "Missing required fields" });
+    }
+
+    if (proficiency_level < 1 || proficiency_level > 5) {
+      return reply.code(400).send({ error: "Proficiency level must be between 1 and 5" });
+    }
+
+    try {
+      const { rows } = await deps.pool.query(
+        `INSERT INTO skills (consultant_id, skill_name, proficiency_level)
+         VALUES ($1, $2, $3) RETURNING id, skill_name, proficiency_level`,
+        [consultant_id, skill_name, proficiency_level]
+      );
+      return rows[0];
+    } catch (err) {
+      const error = err as Error;
+      return reply.code(400).send({ error: error.message });
+    }
   });
 
   return app;
