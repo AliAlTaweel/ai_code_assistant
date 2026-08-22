@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { postChat, type TraceEvent } from "../api/client.js";
 import { useCurrentUser } from "../context/RoleContext.js";
 import { useModelContext } from "../context/ModelContext.js";
+import { MarkdownMessage } from "../components/MarkdownMessage.js";
 
 interface Turn {
   role: "user" | "agent";
@@ -62,7 +63,11 @@ export function StaffingConsole({ prefill, onConsumePrefill }: StaffingConsolePr
                 : "mr-auto max-w-[80%] rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-900"
             }
           >
-            <p>{turn.text}</p>
+            {turn.role === "user" ? (
+              <p>{turn.text}</p>
+            ) : (
+              <MarkdownMessage content={turn.text} />
+            )}
             {turn.role === "agent" && turn.trace.length > 0 && (
               <details className="mt-1">
                 <summary className="cursor-pointer text-xs text-gray-500">steps</summary>

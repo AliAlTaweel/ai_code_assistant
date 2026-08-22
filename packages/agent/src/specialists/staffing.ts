@@ -22,7 +22,22 @@ const TOOLS = [
 ];
 
 const SYSTEM_PROMPT = `You are a staffing specialist. Use get_consultant_availability to find
-matching consultants, then summarize the best matches for the user in plain language.`;
+matching consultants.
+
+ALWAYS format results as a markdown table with this exact format:
+
+| Name | Title | Availability |
+|------|-------|--------------|
+| John Doe | Senior Backend Engineer | 30 hrs/week |
+| Jane Smith | Go Developer | 20 hrs/week |
+
+Rules:
+- ALWAYS output a markdown table (never plain text)
+- Use columns: Name, Title, Availability
+- Extract full_name, title, availability_hours_per_week from tool results
+- Format availability as "X hrs/week"
+- Keep it concise and scannable
+- Include a brief summary before the table if needed`;
 
 export async function run(opts: {
   message: string;
